@@ -569,9 +569,11 @@ func (m *Miniredis) cmdXinfoStream(c *server.Peer, args []string) {
 			return
 		}
 
-		c.WriteMapLen(1)
+		c.WriteMapLen(2)
 		c.WriteBulk("length")
 		c.WriteInt(len(s.entries))
+		c.WriteBulk("entries-added")
+		c.WriteInt(s.entriesAdded)
 	})
 }
 
@@ -610,9 +612,14 @@ func (m *Miniredis) cmdXinfoGroups(c *server.Peer, args []string) {
 			c.WriteBulk("last-delivered-id")
 			c.WriteBulk(g.lastID)
 			c.WriteBulk("entries-read")
-			c.WriteNull()
+			c.WriteInt(g.entriesRead)
 			c.WriteBulk("lag")
-			c.WriteInt(len(g.stream.entries))
+			lag := g.lag()
+			if lag == -1 {
+				c.WriteNull()
+			} else {
+				c.WriteInt(lag)
+			}
 		}
 	})
 }
@@ -1803,7 +1810,7 @@ func parseBlock(cmd string, args []string, block *bool, timeout *time.Duration) 
 	if len(args) < 2 {
 		return errors.New(errWrongNumber(cmd))
 	}
-	(*block) = true
+	*block = true
 	ms, err := strconv.Atoi(args[1])
 	if err != nil {
 		return errors.New(msgInvalidInt)
@@ -1811,6 +1818,6 @@ func parseBlock(cmd string, args []string, block *bool, timeout *time.Duration) 
 	if ms < 0 {
 		return errors.New("ERR timeout is negative")
 	}
-	(*timeout) = time.Millisecond * time.Duration(ms)
+	*timeout = time.Millisecond * time.Duration(ms)
 	return nil
 }
