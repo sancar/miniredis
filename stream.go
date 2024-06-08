@@ -233,7 +233,7 @@ func (s *streamKey) createGroup(group, id string) error {
 	var entriesReadValid = true
 	if id == "$" {
 		id = s.lastIDUnlocked()
-		entriesRead = len(s.entries)
+		entriesRead = s.entriesAdded
 	} else if id == "0" || id == "0-0" || id == s.firstIDUnlocked() {
 		entriesRead = 0
 	} else {
@@ -298,7 +298,7 @@ func (g *streamGroup) onDelete(id string) {
 		return
 	}
 	compare := streamCmp(g.lastID, id)
-	if compare <= 0 {
+	if compare < 0 {
 		// an item between last-delivered-id and last-written-id is deleted. Entries read is not valid anymore
 		g.entriesReadValid = false
 	}
@@ -565,6 +565,7 @@ func (g *streamGroup) updateEntriesRead(msgs []StreamEntry) {
 		g.entriesRead += len(msgs)
 	} else if g.lastID == g.stream.lastIDUnlocked() {
 		// reset entries read as we catch up to the last ID
-		g.entriesRead = len(g.stream.entries)
+		g.entriesRead = g.stream.entriesAdded
+		g.entriesReadValid = true
 	}
 }
