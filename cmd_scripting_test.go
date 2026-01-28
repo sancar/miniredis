@@ -104,6 +104,27 @@ func TestEvalCall(t *testing.T) {
 	)
 }
 
+func TestEval_LuaFlags(t *testing.T) {
+	_, c := runWithClient(t)
+
+	var script = `
+	#!lua flags=no-writes,allow-key-locking
+
+	-- returns the first arg as num
+	return tonumber(ARGV[1])
+`
+	mustDo(t, c,
+		"EVAL", script, "0", "37",
+		proto.Int(37),
+	)
+
+	var sha = sha1Hex(script)
+	mustDo(t, c,
+		"EVALSHA", sha, "0", "37",
+		proto.Int(37),
+	)
+}
+
 func TestScript(t *testing.T) {
 	_, c := runWithClient(t)
 

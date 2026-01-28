@@ -101,6 +101,7 @@ func (m *Miniredis) runLuaScript(c *server.Peer, sha, script string, args []stri
 	l.Push(lua.LString("redis"))
 	l.Call(1, 0)
 
+	script = ignoreEvalFlags(script)
 	if err := doScript(l, script); err != nil {
 		c.WriteError(err.Error())
 		return false
@@ -144,6 +145,18 @@ func compile(script string) (*lua.FunctionProto, error) {
 	}
 	parsedScripts.Store(script, proto)
 	return proto, nil
+}
+
+// See https://redis.io/docs/latest/develop/programmability/eval-intro/#eval-flags
+func ignoreEvalFlags(script string) string {
+	script = strings.TrimSpace(script)
+	if !strings.HasPrefix(script, "#!lua") {
+		return script
+	}
+	if n := strings.Index(script, "\n"); n != -1 {
+		return script[n+1:]
+	}
+	return script
 }
 
 func (m *Miniredis) cmdEval(c *server.Peer, cmd string, args []string) {
